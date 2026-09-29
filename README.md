@@ -43,6 +43,7 @@ fashion-ann-pipeline/
    ```bash
    dvc repro
    ```
+   *Note: Ensure Python 3.9+ and dependencies are active in your virtual environment.*
 4. **Push / Pull Data Artifacts**:
    ```bash
    dvc push
