@@ -49,3 +49,5 @@ fashion-ann-pipeline/
    dvc push
    dvc pull
    ```
+
+<!-- Hotfix: Ensure git config and python environment are active -->
