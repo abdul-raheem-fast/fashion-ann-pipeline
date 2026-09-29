@@ -37,8 +37,8 @@ def preprocess():
     x_test_raw = np.load(os.path.join(raw_dir, "x_test.npy"))
     y_test = np.load(os.path.join(raw_dir, "y_test.npy"))
 
-    print(f"Normalizing pixel values to [0, 1] with Robust Clamping (raw min: {x_train_raw.min()}, max: {x_train_raw.max()})...")
-    # Main branch approach: Min-Max scaling with robust [0.0, 1.0] clamping
+    print(f"Normalizing pixel values: Reconciled robust Min-Max scaling [0, 1] with clipping (raw min: {x_train_raw.min()}, max: {x_train_raw.max()})...")
+    # Reconciled approach: Standard robust [0.0, 1.0] scaling with boundary safety
     x_train_norm = np.clip(x_train_raw.astype(np.float32) / 255.0, 0.0, 1.0)
     x_test_norm = np.clip(x_test_raw.astype(np.float32) / 255.0, 0.0, 1.0)
 
