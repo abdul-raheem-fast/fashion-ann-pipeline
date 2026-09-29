@@ -37,9 +37,10 @@ def preprocess():
     x_test_raw = np.load(os.path.join(raw_dir, "x_test.npy"))
     y_test = np.load(os.path.join(raw_dir, "y_test.npy"))
 
-    print(f"Normalizing pixel values to [0, 1] (raw min: {x_train_raw.min()}, max: {x_train_raw.max()})...")
-    x_train_norm = x_train_raw.astype(np.float32) / 255.0
-    x_test_norm = x_test_raw.astype(np.float32) / 255.0
+    print(f"Normalizing pixel values to [-1, 1] via Zero-Center Scaling (raw min: {x_train_raw.min()}, max: {x_train_raw.max()})...")
+    # Teammate approach: Zero-center scaling to [-1, 1]
+    x_train_norm = (x_train_raw.astype(np.float32) - 127.5) / 127.5
+    x_test_norm = (x_test_raw.astype(np.float32) - 127.5) / 127.5
 
     print(f"Splitting training data into train and validation sets (val_size={val_size}, seed={seed})...")
     x_train, x_val, y_train, y_val = perform_split(
