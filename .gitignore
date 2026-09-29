@@ -29,3 +29,9 @@ Thumbs.db
 .vscode/
 .idea/
 /models
+
+# Assignment source documents & guides
+*.docx
+*.pdf
+*assignment*
+*guide*
