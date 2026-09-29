@@ -1,14 +1,22 @@
 import os
 import json
 import numpy as np
-import tensorflow as tf
 import matplotlib.pyplot as plt
-from sklearn.metrics import confusion_matrix
 
 CLASS_NAMES = [
     "T-shirt/top", "Trouser", "Pullover", "Dress", "Coat",
     "Sandal", "Shirt", "Sneaker", "Bag", "Ankle boot"
 ]
+
+def compute_confusion_matrix(y_true, y_pred, num_classes=10):
+    try:
+        from sklearn.metrics import confusion_matrix
+        return confusion_matrix(y_true, y_pred)
+    except ImportError:
+        cm = np.zeros((num_classes, num_classes), dtype=int)
+        for t, p in zip(y_true, y_pred):
+            cm[t, p] += 1
+        return cm
 
 def evaluate():
     processed_dir = os.path.join("data", "processed")
@@ -20,17 +28,41 @@ def evaluate():
     print("Loading test data and trained model...")
     x_test = np.load(os.path.join(processed_dir, "x_test.npy"))
     y_test = np.load(os.path.join(processed_dir, "y_test.npy"))
-    model = tf.keras.models.load_model(model_path)
 
-    print("Evaluating model performance on test set...")
-    loss, accuracy = model.evaluate(x_test, y_test, verbose=0)
+    try:
+        import tensorflow as tf
+        print("Loading model via TensorFlow Keras...")
+        model = tf.keras.models.load_model(model_path)
+        loss, accuracy = model.evaluate(x_test, y_test, verbose=0)
+        y_pred_probs = model.predict(x_test, verbose=0)
+        y_pred = np.argmax(y_pred_probs, axis=1)
+    except (ImportError, Exception) as e:
+        print(f"TensorFlow not loaded ({e}). Evaluating model from HDF5 weights...")
+        import h5py
+
+        with h5py.File(model_path, "r") as hf:
+            g = hf["model_weights"]
+            w1 = g["w1"][:]
+            b1 = g["b1"][:]
+            w2 = g["w2"][:]
+            b2 = g["b2"][:]
+
+        x_te_flat = x_test.reshape(-1, 784).astype(np.float32)
+        # Forward inference (no dropout during test evaluation)
+        z1 = np.dot(x_te_flat, w1) + b1
+        a1 = np.maximum(0, z1)
+        z2 = np.dot(a1, w2) + b2
+        exp_z = np.exp(z2 - np.max(z2, axis=1, keepdims=True))
+        probs = exp_z / np.sum(exp_z, axis=1, keepdims=True)
+
+        n_samples = len(y_test)
+        loss = -np.mean(np.log(np.clip(probs[np.arange(n_samples), y_test], 1e-12, 1.0)))
+        y_pred = np.argmax(probs, axis=1)
+        accuracy = np.mean(y_pred == y_test)
+
     print(f"Test Loss: {loss:.4f} | Test Accuracy: {accuracy:.4f} ({accuracy*100:.2f}%)")
 
-    # Generate predictions and confusion matrix
-    y_pred_probs = model.predict(x_test, verbose=0)
-    y_pred = np.argmax(y_pred_probs, axis=1)
-
-    cm = confusion_matrix(y_test, y_pred)
+    cm = compute_confusion_matrix(y_test, y_pred)
 
     # Plot confusion matrix
     plt.figure(figsize=(9, 8))

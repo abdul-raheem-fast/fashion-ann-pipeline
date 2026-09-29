@@ -1,17 +1,31 @@
 import os
 import yaml
 import numpy as np
-from sklearn.model_selection import train_test_split
 
 def load_params(params_path="params.yaml"):
     with open(params_path, "r", encoding="utf-8") as f:
         params = yaml.safe_load(f)
     return params.get("preprocess", {})
 
+def perform_split(x, y, val_size=0.1, seed=42):
+    try:
+        from sklearn.model_selection import train_test_split
+        return train_test_split(
+            x, y, test_size=val_size, random_state=seed, stratify=y
+        )
+    except ImportError:
+        print("scikit-learn not available, using deterministic numpy split...")
+        np.random.seed(seed)
+        n = len(x)
+        indices = np.random.permutation(n)
+        split_idx = int(n * (1 - val_size))
+        train_idx, val_idx = indices[:split_idx], indices[split_idx:]
+        return x[train_idx], x[val_idx], y[train_idx], y[val_idx]
+
 def preprocess():
     params = load_params()
-    val_size = params.get("val_size", 0.1)
-    seed = params.get("seed", 42)
+    val_size = float(params.get("val_size", 0.1))
+    seed = int(params.get("seed", 42))
 
     raw_dir = os.path.join("data", "raw")
     processed_dir = os.path.join("data", "processed")
@@ -28,12 +42,11 @@ def preprocess():
     x_test_norm = x_test_raw.astype(np.float32) / 255.0
 
     print(f"Splitting training data into train and validation sets (val_size={val_size}, seed={seed})...")
-    x_train, x_val, y_train, y_val = train_test_split(
+    x_train, x_val, y_train, y_val = perform_split(
         x_train_norm,
         y_train_raw,
-        test_size=val_size,
-        random_state=seed,
-        stratify=y_train_raw
+        val_size=val_size,
+        seed=seed
     )
 
     print(f"Processed splits -> Train: {x_train.shape}, Val: {x_val.shape}, Test: {x_test_norm.shape}")
